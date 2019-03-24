@@ -8,17 +8,28 @@
 import sys
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5 import *
-from classifier import init 
+from classifier import init
+
+from sklearn.pipeline import Pipeline
+from sklearn.feature_extraction.text import TfidfTransformer
+from sklearn.multiclass import OneVsRestClassifier
+from sklearn.svm import LinearSVC
+from sklearn.feature_extraction.text import CountVectorizer
+
 from tst import normalize_rus
 names = ['SupportMKDO', 'SupportNPO', 'SupportOIR', 'SupportOPR', 'SupportORPB', 'SupportReception', 'SupportSPD', 'SupportSynerdocs']
 
+classific = Pipeline([
+                ('vectorizer', CountVectorizer(ngram_range=(1,3))),
+                ('tfidf', TfidfTransformer()),
+                ('clf', OneVsRestClassifier(LinearSVC()))])
 
 class Ui_Form(object):
     def setupUi(self, Form):
 
         #net connect
-        init()
-
+        self.classific = init()
+        
         Form.setObjectName("Form")
         Form.resize(370, 584)
         self.pushButton = QtWidgets.QPushButton(Form)
@@ -31,7 +42,8 @@ class Ui_Form(object):
         self.textBrowser = QtWidgets.QTextBrowser(Form)
         self.textBrowser.setGeometry(QtCore.QRect(10, 10, 351, 471))
         self.textBrowser.setObjectName("textBrowser")
-
+        self.textBrowser.setText("Доброе время суток))"+'\n')
+        
         self.retranslateUi(Form)
         QtCore.QMetaObject.connectSlotsByName(Form)
 
@@ -50,19 +62,18 @@ class Ui_Form(object):
 
     def getNetAns(self, query):
         if (query != "пока"):
+            
             X_test = normalize_rus([query])
-            predicted = classifier.decision_function(X_test)
-            print(predicted)
+            predicted = self.classific.decision_function(X_test)
+            # weight print
+            #print(predicted)
             if(list(filter(lambda x: x > 0, predicted[0])) == []):
                 self.textBrowser.setText(self.textBrowser.toPlainText() + "Уточните свой вопрос!" +'\n')
-       
-                query = query + input().strip()
-                continue
-            var = classifier.predict(X_test)
+                return
+            var = self.classific.predict(X_test)
 
             self.textBrowser.setText(self.textBrowser.toPlainText() + names[var[0]] +'\n')
        
-            query = input().strip()
         else:
             self.textBrowser.setText(self.textBrowser.toPlainText() + "_ДО СВИДАНИЯ_"+'\n')
 
